@@ -1,0 +1,33 @@
+# ========== General Node/Web Stuff ==========
+node_modules/        # Never commit dependencies
+dist/                # Build output (used by Vite, etc.)
+build/
+.cache/
+
+# ========== Firebase Stuff ==========
+.firebase/           # Firebase generated files
+.firebaserc
+firebase-debug.log
+
+# ========== Secrets & Environment Files ==========
+.env
+.env.local
+.env.*.local         # Don't leak API keys or private configs
+
+# ========== Editor & OS Files ==========
+.vscode/             # Your VS Code settings
+.idea/               # JetBrains IDEs (WebStorm, etc.)
+.DS_Store            # macOS file junk
+Thumbs.db            # Windows file junk
+
+# ========== Logs ==========
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========== GitHub Stuff (Optional) ==========
+.github/             # GitHub Actions/issue templates (if unused)
+
+# ========== GitHub Pages ==========
+*.tgz                # Package tarballs
