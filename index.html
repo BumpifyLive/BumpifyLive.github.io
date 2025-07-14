@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BumpifyLive - Discover Live Streams</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .content-area {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+
+        .stream-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stream-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .stream-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stream-info h3 {
+            color: #2d3436;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+        }
+
+        .stream-info p {
+            color: #636e72;
+            margin-bottom: 5px;
+        }
+
+        .stream-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .auth-section {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .auth-section h2 {
+            color: #2d3436;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .notification {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .notification.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .notification.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #636e72;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #2d3436;
+        }
+
+        @media (max-width: 768px) {
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stream-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 BumpifyLive</h1>
+            <p>Discover and promote live streams with community-powered bumping</p>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-primary" onclick="showHome()">Home</button>
+            <button class="btn btn-secondary" onclick="showLogin()">Login</button>
+            <button class="btn btn-secondary" onclick="showSubmit()">Submit Stream</button>
+            <button class="btn btn-secondary hidden" id="logoutBtn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="content-area">
+            <!-- Home Page -->
+            <div id="homePage">
+                <h2>🔥 Live Streams</h2>
+                <p>Discover amazing live streams, sorted by most recently bumped!</p>
+                
+                <div id="notification" class="notification hidden"></div>
+                
+                <div id="streamGrid" class="stream-grid">
+                    <!-- Streams will be populated here -->
+                </div>
+                
+                <div id="emptyState" class="empty-state">
+                    <h3>No streams yet!</h3>
+                    <p>Be the first to submit a stream and get the community started.</p>
+                </div>
+            </div>
+
+            <!-- Login Page -->
+            <div id="loginPage" class="hidden">
+                <div class="auth-section">
+                    <h2>🎮 Join BumpifyLive</h2>
+                    <p>Sign in to submit your streams and bump others to the top!</p>
+                    
+                    <div style="margin-top: 30px;">
+                        <button class="btn btn-primary" onclick="signInWithGoogle()">
+                            Sign in with Google
+                        </button>
+                    </div>
+                    
+                    <div id="authNotification" class="notification hidden"></div>
+                </div>
+            </div>
+
+            <!-- Submit Stream Page -->
+            <div id="submitPage" class="hidden">
+                <h2>📡 Submit Your Stream</h2>
+                <p>Add your live stream to the community list or bump it to the top!</p>
+                
+                <div id="submitNotification" class="notification hidden"></div>
+                
+                <div id="authRequired" class="auth-section">
+                    <h3>Authentication Required</h3>
+                    <p>Please log in to submit streams.</p>
+                    <button class="btn btn-primary" onclick="showLogin()">Go to Login</button>
+                </div>
+                
+                <div id="submitForm" class="hidden">
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar"></div>
+                        <div>
+                            <strong id="userName"></strong>
+                            <div style="font-size: 0.9em; color: #636e72;">Ready to submit</div>
+                        </div>
+                    </div>
+                    
+                    <form onsubmit="submitStream(event)">
+                        <div class="form-group">
+                            <label for="streamUrl">Stream URL *</label>
+                            <input type="url" id="streamUrl" placeholder="https://twitch.tv/yourname" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="streamTitle">Stream Title *</label>
+                            <input type="text" id="streamTitle" placeholder="My Awesome Stream" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="streamGame">Game/Category</label>
+                            <input type="text" id="streamGame" placeholder="Just Chatting">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="streamDescription">Description</label>
+                            <textarea id="streamDescription" rows="3" placeholder="Tell viewers what to expect..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Submit Stream</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated Firebase-like functionality
+        class MockFirebase {
+            constructor() {
+                this.currentUser = null;
+                this.streams = JSON.parse(localStorage.getItem('bumpify_streams') || '[]');
+                this.authCallbacks = [];
+                this.streamCallbacks = [];
+            }
+
+            // Auth methods
+            onAuthStateChanged(callback) {
+                this.authCallbacks.push(callback);
+                // Simulate async auth check
+                setTimeout(() => {
+                    const savedUser = localStorage.getItem('bumpify_user');
+                    if (savedUser) {
+                        this.currentUser = JSON.parse(savedUser);
+                    }
+                    callback(this.currentUser);
+                }, 100);
+            }
+
+            signInWithGoogle() {
+                return new Promise((resolve) => {
+                    // Simulate Google sign-in
+                    setTimeout(() => {
+                        this.currentUser = {
+                            uid: 'user_' + Date.now(),
+                            displayName: 'Demo User',
+                            email: 'demo@example.com',
+                            photoURL: null
+                        };
+                        localStorage.setItem('bumpify_user', JSON.stringify(this.currentUser));
+                        this.authCallbacks.forEach(callback => callback(this.currentUser));
+                        resolve(this.currentUser);
+                    }, 1000);
+                });
+            }
+
+            signOut() {
+                this.currentUser = null;
+                localStorage.removeItem('bumpify_user');
+                this.authCallbacks.forEach(callback => callback(null));
+            }
+
+            // Firestore methods
+            addStream(streamData) {
+                const stream = {
+                    id: 'stream_' + Date.now(),
+                    userId: this.currentUser.uid,
+                    userDisplayName: this.currentUser.displayName,
+                    timestamp: Date.now(),
+                    ...streamData
+                };
+                
+                // Remove existing stream from same user
+                this.streams = this.streams.filter(s => s.userId !== this.currentUser.uid);
+                
+                // Add new stream
+                this.streams.unshift(stream);
+                this.saveStreams();
+                this.notifyStreamUpdate();
+                return stream;
+            }
+
+            bumpStream(streamId) {
+                const streamIndex = this.streams.findIndex(s => s.id === streamId);
+                if (streamIndex > -1) {
+                    const stream = this.streams[streamIndex];
+                    // Remove from current position
+                    this.streams.splice(streamIndex, 1);
+                    // Update timestamp and add to top
+                    stream.timestamp = Date.now();
+                    this.streams.unshift(stream);
+                    this.saveStreams();
+                    this.notifyStreamUpdate();
+                }
+            }
+
+            onStreamsSnapshot(callback) {
+                this.streamCallbacks.push(callback);
+                // Initial call
+                callback(this.streams);
+            }
+
+            saveStreams() {
+                localStorage.setItem('bumpify_streams', JSON.stringify(this.streams));
+            }
+
+            notifyStreamUpdate() {
+                this.streamCallbacks.forEach(callback => callback(this.streams));
+            }
+
+            deleteStream(streamId) {
+                this.streams = this.streams.filter(s => s.id !== streamId);
+                this.saveStreams();
+                this.notifyStreamUpdate();
+            }
+        }
+
+        // Initialize mock Firebase
+        const firebase = new MockFirebase();
+
+        // App state
+        let currentUser = null;
+        let streams = [];
+
+        // Initialize app
+        function initApp() {
+            firebase.onAuthStateChanged(user => {
+                currentUser = user;
+                updateUI();
+            });
+
+            firebase.onStreamsSnapshot(streamList => {
+                streams = streamList;
+                renderStreams();
+            });
+        }
+
+        // Navigation
+        function showHome() {
+            hideAllPages();
+            document.getElementById('homePage').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            hideAllPages();
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        function showSubmit() {
+            hideAllPages();
+            document.getElementById('submitPage').classList.remove('hidden');
+        }
+
+        function hideAllPages() {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('submitPage').classList.add('hidden');
+        }
+
+        function updateUI() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            const authRequired = document.getElementById('authRequired');
+            const submitForm = document.getElementById('submitForm');
+            
+            if (currentUser) {
+                logoutBtn.classList.remove('hidden');
+                authRequired.classList.add('hidden');
+                submitForm.classList.remove('hidden');
+                
+                // Update user info
+                document.getElementById('userName').textContent = currentUser.displayName;
+                document.getElementById('userAvatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+            } else {
+                logoutBtn.classList.add('hidden');
+                authRequired.classList.remove('hidden');
+                submitForm.classList.add('hidden');
+            }
+        }
+
+        // Authentication
+        async function signInWithGoogle() {
+            try {
+                showNotification('authNotification', 'Signing in...', 'success');
+                await firebase.signInWithGoogle();
+                showNotification('authNotification', 'Successfully signed in!', 'success');
+                setTimeout(() => {
+                    showHome();
+                }, 1000);
+            } catch (error) {
+                showNotification('authNotification', 'Failed to sign in. Please try again.', 'error');
+            }
+        }
+
+        function logout() {
+            firebase.signOut();
+            showNotification('notification', 'Successfully logged out!', 'success');
+            showHome();
+        }
+
+        // Stream management
+        function submitStream(event) {
+            event.preventDefault();
+            
+            if (!currentUser) {
+                showNotification('submitNotification', 'Please log in first.', 'error');
+                return;
+            }
+            
+            const streamData = {
+                url: document.getElementById('streamUrl').value,
+                title: document.getElementById('streamTitle').value,
+                game: document.getElementById('streamGame').value || 'Just Chatting',
+                description: document.getElementById('streamDescription').value || ''
+            };
+            
+            try {
+                firebase.addStream(streamData);
+                showNotification('submitNotification', 'Stream submitted successfully!', 'success');
+                
+                // Reset form
+                document.getElementById('streamUrl').value = '';
+                document.getElementById('streamTitle').value = '';
+                document.getElementById('streamGame').value = '';
+                document.getElementById('streamDescription').value = '';
+                
+                // Show home page after a delay
+                setTimeout(() => {
+                    showHome();
+                }, 1500);
+            } catch (error) {
+                showNotification('submitNotification', 'Failed to submit stream. Please try again.', 'error');
+            }
+        }
+
+        function bumpStream(streamId) {
+            if (!currentUser) {
+                showNotification('notification', 'Please log in to bump streams.', 'error');
+                return;
+            }
+            
+            firebase.bumpStream(streamId);
+            showNotification('notification', 'Stream bumped to the top!', 'success');
+        }
+
+        function deleteStream(streamId) {
+            if (!currentUser) return;
+            
+            firebase.deleteStream(streamId);
+            showNotification('notification', 'Stream deleted successfully!', 'success');
+        }
+
+        // Render streams
+        function renderStreams() {
+            const streamGrid = document.getElementById('streamGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (streams.length === 0) {
+                streamGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            streamGrid.innerHTML = streams.map(stream => `
+                <div class="stream-card">
+                    <div class="stream-info">
+                        <h3>${escapeHtml(stream.title)}</h3>
+                        <p><strong>Streamer:</strong> ${escapeHtml(stream.userDisplayName)}</p>
+                        <p><strong>Game:</strong> ${escapeHtml(stream.game)}</p>
+                        ${stream.description ? `<p><strong>Description:</strong> ${escapeHtml(stream.description)}</p>` : ''}
+                        <p><strong>Bumped:</strong> ${formatTime(stream.timestamp)}</p>
+                    </div>
+                    <div class="stream-actions">
+                        <a href="${escapeHtml(stream.url)}" target="_blank" class="btn btn-primary btn-small">
+                            Watch Stream
+                        </a>
+                        <button class="btn btn-secondary btn-small" onclick="bumpStream('${stream.id}')">
+                            Bump ⬆️
+                        </button>
+                        ${currentUser && currentUser.uid === stream.userId ? 
+                            `<button class="btn btn-secondary btn-small" onclick="deleteStream('${stream.id}')" style="background: #ff6b6b; color: white;">Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Utility functions
+        function showNotification(elementId, message, type) {
+            const notification = document.getElementById(elementId);
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        function formatTime(timestamp) {
+            const diff = Date.now() - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return `${days}d ago`;
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return 'Just now';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize app when page loads
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
