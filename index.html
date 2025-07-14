@@ -705,7 +705,7 @@
         let streams = [];
         let filteredStreams = [];
 
-        // Initialize app
+        // Replace the initApp function with this fixed version
         function initApp() {
             showLoading(true);
             
@@ -720,14 +720,25 @@
                 }
             });
 
-            // Listen for stream updates
+            // First, try to fix any existing documents that might be missing lastBumped
+            fixExistingDocuments();
+
+            // Listen for stream updates - KEEPING BUMP-FIRST ORDERING
             db.collection('streams')
-                .orderBy('lastBumped', 'desc')
+                .orderBy('lastBumped', 'desc') // Keep the bump ordering!
                 .onSnapshot(snapshot => {
-                    streams = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
+                    console.log('Firestore snapshot received:', snapshot.docs.length, 'documents');
+                    
+                    streams = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        console.log('Stream document:', doc.id, data);
+                        return {
+                            id: doc.id,
+                            ...data
+                        };
+                    });
+                    
+                    console.log('Processed streams:', streams.length);
                     
                     // Update stats
                     updateStats();
@@ -740,9 +751,74 @@
                     
                     showLoading(false);
                 }, error => {
-                    console.error('Error fetching streams:', error);
-                    showNotification('Error loading streams', 'error');
-                    showLoading(false);
+                    console.error('Error fetching streams with orderBy:', error);
+                    
+                    // Fallback: Try without ordering if index doesn't exist
+                    console.log('Trying fallback query without ordering...');
+                    db.collection('streams')
+                        .get()
+                        .then(snapshot => {
+                            console.log('Fallback query successful:', snapshot.docs.length, 'documents');
+                            
+                            streams = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            
+                            // Sort manually by lastBumped (bump-first ordering)
+                            streams.sort((a, b) => {
+                                const aTime = a.lastBumped || a.createdAt;
+                                const bTime = b.lastBumped || b.createdAt;
+                                return (bTime?.toDate() || 0) - (aTime?.toDate() || 0);
+                            });
+                            
+                            updateStats();
+                            updateGameFilter();
+                            filterStreams();
+                            showLoading(false);
+                        })
+                        .catch(fallbackError => {
+                            console.error('Fallback query also failed:', fallbackError);
+                            showNotification('Error loading streams. Please check console.', 'error');
+                            showLoading(false);
+                        });
+                });
+        }
+
+        // Function to fix existing documents that might be missing lastBumped field
+        function fixExistingDocuments() {
+            console.log('Checking for documents that need lastBumped field...');
+            
+            db.collection('streams')
+                .get()
+                .then(snapshot => {
+                    const batch = db.batch();
+                    let needsUpdate = false;
+                    
+                    snapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        if (!data.lastBumped) {
+                            console.log('Fixing document missing lastBumped:', doc.id);
+                            // Use createdAt as fallback, or current time if that's also missing
+                            const fallbackTime = data.createdAt || firebase.firestore.FieldValue.serverTimestamp();
+                            batch.update(doc.ref, {
+                                lastBumped: fallbackTime,
+                                bumpCount: data.bumpCount || 0,
+                                bumpedBy: data.bumpedBy || []
+                            });
+                            needsUpdate = true;
+                        }
+                    });
+                    
+                    if (needsUpdate) {
+                        return batch.commit();
+                    }
+                })
+                .then(() => {
+                    console.log('Document fixes completed');
+                })
+                .catch(error => {
+                    console.error('Error fixing documents:', error);
                 });
         }
 
@@ -770,7 +846,7 @@
                 });
         }
 
-        // Stream management
+        // Also update the submitStream function to ensure proper field initialization
         function submitStream(event) {
             event.preventDefault();
             
@@ -779,6 +855,7 @@
                 return;
             }
 
+            const now = firebase.firestore.FieldValue.serverTimestamp();
             const formData = {
                 url: document.getElementById('streamUrl').value,
                 title: document.getElementById('streamTitle').value,
@@ -789,11 +866,13 @@
                 userDisplayName: currentUser.displayName,
                 userEmail: currentUser.email,
                 userPhoto: currentUser.photoURL || null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastBumped: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: now,
+                lastBumped: now, // Initialize with same timestamp
                 bumpCount: 0,
                 bumpedBy: []
             };
+
+            console.log('Submitting stream data:', formData);
 
             // Check if user already has a stream
             db.collection('streams')
@@ -803,22 +882,42 @@
                     if (!querySnapshot.empty) {
                         // Update existing stream
                         const existingDoc = querySnapshot.docs[0];
-                        existingDoc.ref.update({
+                        const updateData = {
                             ...formData,
                             lastBumped: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        showNotification('Stream updated successfully!', 'success');
+                        };
+                        
+                        console.log('Updating existing stream:', existingDoc.id, updateData);
+                        
+                        existingDoc.ref.update(updateData)
+                            .then(() => {
+                                console.log('Stream updated successfully');
+                                showNotification('Stream updated successfully!', 'success');
+                            })
+                            .catch(updateError => {
+                                console.error('Error updating stream:', updateError);
+                                showNotification('Failed to update stream. Please try again.', 'error');
+                            });
                     } else {
                         // Create new stream
-                        db.collection('streams').add(formData);
-                        showNotification('Stream added successfully!', 'success');
+                        console.log('Creating new stream');
+                        
+                        db.collection('streams').add(formData)
+                            .then(docRef => {
+                                console.log('Stream created successfully:', docRef.id);
+                                showNotification('Stream added successfully!', 'success');
+                            })
+                            .catch(addError => {
+                                console.error('Error creating stream:', addError);
+                                showNotification('Failed to add stream. Please try again.', 'error');
+                            });
                     }
                     
                     closeModal('submitModal');
                     resetForm();
                 })
                 .catch(error => {
-                    console.error('Error submitting stream:', error);
+                    console.error('Error checking existing streams:', error);
                     showNotification('Failed to submit stream. Please try again.', 'error');
                 });
         }
@@ -856,360 +955,4 @@
                     });
                     
                     streamRef.update({
-                        lastBumped: firebase.firestore.FieldValue.serverTimestamp(),
-                        bumpCount: firebase.firestore.FieldValue.increment(1),
-                        bumpedBy: updatedBumpedBy
-                    });
-                    
-                    showNotification('Stream bumped to the top!', 'success');
-                }
-            }).catch(error => {
-                console.error('Error bumping stream:', error);
-                showNotification('Failed to bump stream', 'error');
-            });
-        }
-
-        function deleteStream(streamId) {
-            if (!currentUser) return;
-            
-            if (confirm('Are you sure you want to delete this stream?')) {
-                db.collection('streams').doc(streamId).delete()
-                    .then(() => {
-                        showNotification('Stream deleted successfully', 'success');
-                    })
-                    .catch(error => {
-                        console.error('Error deleting stream:', error);
-                        showNotification('Failed to delete stream', 'error');
-                    });
-            }
-        }
-
-        // UI Functions
-        function updateAuthUI() {
-            const authSection = document.getElementById('authSection');
-            
-            if (currentUser) {
-                authSection.innerHTML = `
-                    <div class="user-dropdown">
-                        <div class="user-info">
-                            <div class="user-avatar-small">
-                                ${currentUser.photoURL ? 
-                                    `<img src="${currentUser.photoURL}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                                    currentUser.displayName.charAt(0).toUpperCase()
-                                }
-                            </div>
-                            <span>${currentUser.displayName}</span>
-                        </div>
-                    </div>
-                    <button onclick="signOut()">Logout</button>
-                `;
-            } else {
-                authSection.innerHTML = `
-                    <button onclick="showLoginModal()">Login</button>
-                `;
-            }
-        }
-
-        function renderStreams() {
-            const streamGrid = document.getElementById('streamGrid');
-            const emptyState = document.getElementById('emptyState');
-            
-            if (filteredStreams.length === 0) {
-                streamGrid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            
-            emptyState.classList.add('hidden');
-            
-            streamGrid.innerHTML = filteredStreams.map(stream => {
-                const canBump = currentUser && (!stream.bumpedBy || 
-                    !stream.bumpedBy.some(entry => 
-                        entry.userId === currentUser.uid && 
-                        entry.timestamp && 
-                        (new Date() - entry.timestamp.toDate()) < 60 * 60 * 1000
-                    ));
-                
-                const isOwner = currentUser && stream.userId === currentUser.uid;
-                const lastBumped = stream.lastBumped ? formatTime(stream.lastBumped.toDate()) : 'Never';
-                
-                return `
-                    <div class="stream-card ${isRecentlyBumped(stream) ? 'recently-bumped' : ''}">
-                        <div class="stream-header">
-                            <div class="stream-avatar">
-                                ${stream.userPhoto ? 
-                                    `<img src="${stream.userPhoto}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                                    stream.userDisplayName.charAt(0).toUpperCase()
-                                }
-                            </div>
-                            <div style="flex: 1;">
-                                <h3>${escapeHtml(stream.title)}</h3>
-                                <span class="stream-platform">${stream.platform.toUpperCase()}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stream-details">
-                            <p><strong>Streamer:</strong> ${escapeHtml(stream.userDisplayName)}</p>
-                            <p><strong>Game:</strong> <span class="stream-game">${escapeHtml(stream.game)}</span></p>
-                            <p><strong>Bumped:</strong> ${lastBumped}</p>
-                        </div>
-                        
-                        ${stream.description ? `<div class="stream-description">${escapeHtml(stream.description)}</div>` : ''}
-                        
-                        <div class="stream-actions">
-                            <div class="left">
-                                <a href="${escapeHtml(stream.url)}" target="_blank" class="btn btn-primary btn-small">
-                                    Watch Stream
-                                </a>
-                                ${canBump ? 
-                                    `<button class="btn btn-success btn-small" onclick="bumpStream('${stream.id}')">
-                                        Bump ⬆️
-                                    </button>` : 
-                                    `<button class="btn btn-secondary btn-small" disabled>
-                                        Bumped ✓
-                                    </button>`
-                                }
-                            </div>
-                            <div class="bump-info">
-                                <span class="bump-count">${stream.bumpCount || 0} bumps</span>
-                                ${isOwner ? 
-                                    `<button class="btn btn-danger btn-small" onclick="deleteStream('${stream.id}')">
-                                        Delete
-                                    </button>` : ''
-                                }
-                            </div>
-                        </div>
-                        
-                        ${canBump ? '' : '<div class="bump-timer">You can bump again in ' + getRemainingBumpTime(stream) + '</div>'}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function filterStreams() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const sortBy = document.getElementById('sortFilter').value;
-            const platformFilter = document.getElementById('platformFilter').value;
-            const gameFilter = document.getElementById('gameFilter').value;
-            
-            filteredStreams = streams.filter(stream => {
-                const matchesSearch = !searchTerm || 
-                    stream.title.toLowerCase().includes(searchTerm) ||
-                    stream.userDisplayName.toLowerCase().includes(searchTerm) ||
-                    stream.game.toLowerCase().includes(searchTerm);
-                
-                const matchesPlatform = platformFilter === 'all' || stream.platform === platformFilter;
-                const matchesGame = gameFilter === 'all' || stream.game === gameFilter;
-                
-                return matchesSearch && matchesPlatform && matchesGame;
-            });
-            
-            // Sort streams
-            filteredStreams.sort((a, b) => {
-                switch (sortBy) {
-                    case 'title':
-                        return a.title.localeCompare(b.title);
-                    case 'streamer':
-                        return a.userDisplayName.localeCompare(b.userDisplayName);
-                    case 'game':
-                        return a.game.localeCompare(b.game);
-                    case 'recent':
-                    default:
-                        return (b.lastBumped?.toDate() || 0) - (a.lastBumped?.toDate() || 0);
-                }
-            });
-            
-            renderStreams();
-        }
-
-        function updateStats() {
-            const totalStreams = streams.length;
-            const totalBumps = streams.reduce((sum, stream) => sum + (stream.bumpCount || 0), 0);
-            const totalUsers = new Set(streams.map(stream => stream.userId)).size;
-            
-            document.getElementById('totalStreams').textContent = totalStreams;
-            document.getElementById('totalBumps').textContent = totalBumps;
-            document.getElementById('totalUsers').textContent = totalUsers;
-        }
-
-        function updateGameFilter() {
-            const gameFilter = document.getElementById('gameFilter');
-            const games = [...new Set(streams.map(stream => stream.game))].sort();
-            
-            const currentValue = gameFilter.value;
-            gameFilter.innerHTML = '<option value="all">All Games</option>';
-            
-            games.forEach(game => {
-                const option = document.createElement('option');
-                option.value = game;
-                option.textContent = game;
-                gameFilter.appendChild(option);
-            });
-            
-            gameFilter.value = currentValue;
-        }
-
-        function showSubmitModal() {
-            if (!currentUser) {
-                showLoginModal();
-                return;
-            }
-            
-            // Pre-fill form if user has existing stream
-            const userStream = streams.find(stream => stream.userId === currentUser.uid);
-            if (userStream) {
-                document.getElementById('streamUrl').value = userStream.url;
-                document.getElementById('streamTitle').value = userStream.title;
-                document.getElementById('streamGame').value = userStream.game;
-                document.getElementById('streamDescription').value = userStream.description || '';
-                document.getElementById('streamPlatform').value = userStream.platform;
-            }
-            
-            document.getElementById('submitModal').style.display = 'block';
-        }
-
-        function showLoginModal() {
-            document.getElementById('loginModal').style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function resetForm() {
-            document.getElementById('submitForm').reset();
-        }
-
-        function showHome() {
-            // Already on home page
-        }
-
-        function showLoading(show) {
-            const loading = document.getElementById('loading');
-            const streamGrid = document.getElementById('streamGrid');
-            
-            if (show) {
-                loading.classList.remove('hidden');
-                streamGrid.style.display = 'none';
-            } else {
-                loading.classList.add('hidden');
-                streamGrid.style.display = 'grid';
-            }
-        }
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-
-        // Utility functions
-        function formatTime(date) {
-            const now = new Date();
-            const diff = now - date;
-            const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-            
-            if (days > 0) return `${days}d ago`;
-            if (hours > 0) return `${hours}h ago`;
-            if (minutes > 0) return `${minutes}m ago`;
-            return 'Just now';
-        }
-
-        function isRecentlyBumped(stream) {
-            if (!stream.lastBumped) return false;
-            const diff = new Date() - stream.lastBumped.toDate();
-            return diff < 5 * 60 * 1000; // 5 minutes
-        }
-
-        function getRemainingBumpTime(stream) {
-            if (!currentUser || !stream.bumpedBy) return '';
-            
-            const userBump = stream.bumpedBy.find(entry => entry.userId === currentUser.uid);
-            if (!userBump || !userBump.timestamp) return '';
-            
-            const diff = new Date() - userBump.timestamp.toDate();
-            const remaining = (60 * 60 * 1000) - diff; // 1 hour
-            
-            if (remaining <= 0) return '';
-            
-            const minutes = Math.floor(remaining / 60000);
-            return `${minutes}m`;
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        };
-
-        // Initialize app when page loads
-        window.addEventListener('load', initApp);
-
-        // Auto-detect platform from URL
-        document.getElementById('streamUrl').addEventListener('input', function(e) {
-            const url = e.target.value.toLowerCase();
-            const platformSelect = document.getElementById('streamPlatform');
-            
-            if (url.includes('twitch.tv')) {
-                platformSelect.value = 'twitch';
-            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                platformSelect.value = 'youtube';
-            } else if (url.includes('kick.com')) {
-                platformSelect.value = 'kick';
-            } else if (url && platformSelect.value === '') {
-                platformSelect.value = 'other';
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
-            }
-            
-            if (e.key === 'Escape') {
-                const modals = document.querySelectorAll('.modal');
-                modals.forEach(modal => {
-                    if (modal.style.display === 'block') {
-                        modal.style.display = 'none';
-                    }
-                });
-            }
-        });
-
-        // Search input focus effect
-        document.getElementById('searchInput').addEventListener('focus', function() {
-            this.placeholder = '🔍 Search streams, games, or streamers... (Ctrl+K)';
-        });
-
-        document.getElementById('searchInput').addEventListener('blur', function() {
-            this.placeholder = '🔍 Search streams, games, or streamers...';
-        });
-    </script>
-</body>
-</html>
+                        lastBumped: firebase.firestore.FieldValue.
