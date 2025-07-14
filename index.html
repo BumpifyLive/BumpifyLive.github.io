@@ -760,19 +760,6 @@
                 });
         }
 
-        function signInWithTwitch() {
-            const provider = new firebase.auth.OAuthProvider('twitch.tv');
-            auth.signInWithPopup(provider)
-                .then(result => {
-                    showNotification('Successfully signed in with Twitch!', 'success');
-                    closeModal('loginModal');
-                })
-                .catch(error => {
-                    console.error('Twitch auth error:', error);
-                    showNotification('Failed to sign in with Twitch. Please try again.', 'error');
-                });
-        }
-
         function signOut() {
             auth.signOut()
                 .then(() => {
