@@ -324,10 +324,35 @@
             transform: none;
         }
 
+        .bump-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
         .bump-count {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             color: #666;
-            margin-left: 0.5rem;
+            font-weight: 500;
+        }
+
+        .countdown-timer {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .bump-ready {
+            font-size: 0.8rem;
+            color: #4CAF50;
+            font-weight: 600;
         }
 
         .loading {
@@ -637,7 +662,13 @@
                 return;
             }
 
-            streamersGrid.innerHTML = streams.map(stream => `
+            streamersGrid.innerHTML = streams.map(stream => {
+                const canBumpNow = canBump(stream);
+                const lastBumped = stream.lastBumped?.toDate() || new Date(0);
+                const nextBumpTime = new Date(lastBumped.getTime() + (BUMP_COOLDOWN_HOURS * 60 * 60 * 1000));
+                const timeUntilNextBump = nextBumpTime - new Date();
+                
+                return `
                 <div class="streamer-card">
                     <div class="streamer-header">
                         <img src="${stream.userPhoto || ''}" alt="${stream.userDisplayName}" class="streamer-photo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMzAiIGZpbGw9IiNkZGQiLz4KPHN2ZyB4PSIxNSIgeT0iMTAiIHdpZHRoPSIzMCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAxMmMyLjc2IDAgNS0yLjI0IDUtNXMtMi4yNC01LTUtNS01IDIuMjQtNSA1IDIuMjQgNSA1IDV6bTAgMmMtMy4zMyAwLTEwIDEuNjctMTAgNXYzaDE0di0zYzAtMy4zMy02LjY3LTUtNS01eiIvPgo8L3N2Zz4KPC9zdmc+'">
@@ -648,20 +679,71 @@
                     </div>
                     <div class="streamer-game">${stream.game}</div>
                     <div class="streamer-description">${stream.description}</div>
+                    <div class="bump-info">
+                        <span class="bump-count">Bumps: ${stream.bumpCount || 0}</span>
+                        ${!canBumpNow && timeUntilNextBump > 0 ? 
+                            `<span class="countdown-timer" data-stream-id="${stream.id}">Loading...</span>` : 
+                            '<span class="bump-ready">Ready to bump!</span>'
+                        }
+                    </div>
                     <div class="streamer-actions">
                         <button class="watch-btn" onclick="window.open('${stream.url}', '_blank')">
                             Watch Streamer
                         </button>
-                        <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBump(stream) ? 'disabled' : ''}>
-                            Bump
+                        <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBumpNow ? 'disabled' : ''}>
+                            ${canBumpNow ? 'Bump' : 'Cooldown'}
                         </button>
-                        <span class="bump-count">${stream.bumpCount || 0}</span>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+            
+            // Start countdown updates after rendering
+            updateCountdowns();
         }
 
-        // Check if user can bump
+        // Format time remaining for countdown
+        function formatTimeRemaining(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${seconds}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        // Update countdown timers
+        function updateCountdowns() {
+            const countdownElements = document.querySelectorAll('.countdown-timer');
+            countdownElements.forEach(element => {
+                const streamId = element.dataset.streamId;
+                const stream = allStreams.find(s => s.id === streamId);
+                
+                if (stream) {
+                    const lastBumped = stream.lastBumped?.toDate() || new Date(0);
+                    const now = new Date();
+                    const nextBumpTime = new Date(lastBumped.getTime() + (BUMP_COOLDOWN_HOURS * 60 * 60 * 1000));
+                    const timeUntilNextBump = nextBumpTime - now;
+                    
+                    if (timeUntilNextBump > 0) {
+                        element.textContent = formatTimeRemaining(timeUntilNextBump);
+                        element.style.color = '#ff6b6b';
+                    } else {
+                        element.textContent = 'Ready to bump!';
+                        element.style.color = '#4CAF50';
+                    }
+                }
+            });
+        }
+
+        // Start countdown updates
+        setInterval(updateCountdowns, 1000);
         function canBump(stream) {
             if (!currentUser) return false;
             
@@ -856,8 +938,8 @@
                     : userStreams.map(stream => {
                         const canBumpOwn = canBump(stream);
                         const lastBumped = stream.lastBumped?.toDate();
-                        const timeSinceLastBump = lastBumped ? 
-                            Math.round((new Date() - lastBumped) / (1000 * 60 * 60 * 24 * 10)) / 100 : 0;
+                        const nextBumpTime = lastBumped ? new Date(lastBumped.getTime() + (BUMP_COOLDOWN_HOURS * 60 * 60 * 1000)) : null;
+                        const timeUntilNextBump = nextBumpTime ? nextBumpTime - new Date() : 0;
                         
                         return `
                         <div class="user-stream-item">
@@ -867,9 +949,13 @@
                             <p><strong>Game:</strong> ${stream.game}</p>
                             <p><strong>Bumps:</strong> ${stream.bumpCount || 0}</p>
                             <p><strong>Last Bumped:</strong> ${lastBumped ? lastBumped.toLocaleString() : 'Never'}</p>
+                            ${!canBumpOwn && timeUntilNextBump > 0 ? 
+                                `<p><strong>Next Bump:</strong> <span class="countdown-timer" data-stream-id="${stream.id}">Loading...</span></p>` : 
+                                '<p><strong>Status:</strong> <span class="bump-ready">Ready to bump!</span></p>'
+                            }
                             <div style="margin-top: 1rem;">
                                 <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBumpOwn ? 'disabled' : ''}>
-                                    ${canBumpOwn ? 'Bump Now' : `Cooldown (${BUMP_COOLDOWN_HOURS}h)`}
+                                    ${canBumpOwn ? 'Bump Now' : 'Cooldown Active'}
                                 </button>
                                 <button class="watch-btn" onclick="window.open('${stream.url}', '_blank')" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem;">
                                     View Stream
@@ -878,6 +964,9 @@
                         </div>
                     `;
                     }).join('');
+                    
+                // Update countdowns for user streams
+                updateCountdowns();
             } catch (error) {
                 console.error('Error loading user streams:', error);
                 userStreamsList.innerHTML = '<p>Error loading streams. Please try again.</p>';
