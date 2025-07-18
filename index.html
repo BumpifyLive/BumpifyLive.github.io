@@ -3,7 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BumpifyLive - Stream Discovery Platform</title>
+    <title>BumpifyLive - Discover Live Streamers</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <img src="assets/logo.png" alt="BumpifyLive" class="logo" onerror="this.style.display='none'">
+                <h1>BumpifyLive</h1>
+            </div>
+            <div class="nav-right">
+                <a href="purchase.html" class="nav-link">Purchase</a>
+                <button id="authBtn" class="auth-btn">Sign In</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <h2>Discover Live Streamers</h2>
+            
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search streamers by name, game, or platform..." class="search-input">
+            </div>
+
+            <!-- Streamers Grid -->
+            <div id="streamersGrid" class="streamers-grid">
+                <div class="loading">Loading streamers...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Account Page -->
+    <div id="accountPage" class="page-overlay" style="display: none;">
+        <div class="account-container">
+            <div class="account-header">
+                <h2>Your Account</h2>
+                <button id="closeAccount" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="account-content">
+                <div class="user-info">
+                    <img id="userPhoto" src="" alt="User Photo" class="user-photo">
+                    <div>
+                        <h3 id="userName"></h3>
+                        <p id="userEmail"></p>
+                    </div>
+                </div>
+
+                <div class="stream-form">
+                    <h3>Add Your Stream</h3>
+                    <form id="addStreamForm">
+                        <input type="text" id="streamTitle" placeholder="Stream Title" required>
+                        <select id="streamPlatform" required>
+                            <option value="">Select Platform</option>
+                            <option value="twitch">Twitch</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="kick">Kick</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="url" id="streamUrl" placeholder="Stream URL" required>
+                        <input type="text" id="streamGame" placeholder="Game/Category" required>
+                        <textarea id="streamDescription" placeholder="Description" rows="3"></textarea>
+                        <button type="submit" class="submit-btn">Add Stream</button>
+                    </form>
+                </div>
+
+                <div class="user-streams">
+                    <h3>Your Streams</h3>
+                    <div id="userStreamsList"></div>
+                </div>
+
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Page -->
+    <div id="purchasePage" class="page-overlay" style="display: none;">
+        <div class="purchase-container">
+            <div class="purchase-header">
+                <h2>Purchase</h2>
+                <button id="closePurchase" class="close-btn">&times;</button>
+            </div>
+            <div class="purchase-content">
+                <h3>Coming Soon</h3>
+                <p>Premium features will be available soon!</p>
+            </div>
+        </div>
+    </div>
+
     <style>
         * {
             margin: 0;
@@ -12,22 +105,20 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #36393f;
-            color: #dcddde;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
         }
 
         .navbar {
-            background: #2f3136;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             padding: 1rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .navbar-content {
+        .nav-container {
             max-width: 1200px;
             margin: 0 auto;
             display: flex;
@@ -36,663 +127,402 @@
             padding: 0 2rem;
         }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #7289da;
-            text-decoration: none;
-        }
-
-        .nav-links {
+        .nav-left {
             display: flex;
-            gap: 2rem;
             align-items: center;
+            gap: 1rem;
         }
 
-        .nav-links a, .nav-links button {
-            color: #dcddde;
+        .logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .nav-left h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-link {
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        .nav-links a:hover, .nav-links button:hover {
-            background: #40444b;
-            color: #7289da;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
+            color: #333;
             font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
-        .btn-primary {
-            background: #7289da;
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .auth-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .btn-primary:hover {
-            background: #677bc4;
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-secondary {
-            background: #4f545c;
-            color: #dcddde;
-        }
-
-        .btn-secondary:hover {
-            background: #5d6269;
-        }
-
-        .btn-success {
-            background: #43b581;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #3ca374;
-        }
-
-        .btn-danger {
-            background: #f04747;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #d73c3c;
+        .main-content {
+            padding: 2rem 0;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 0 2rem;
         }
 
-        .hero {
+        .container h2 {
             text-align: center;
-            padding: 3rem 0;
-            background: linear-gradient(135deg, #7289da, #43b581);
-            margin: -2rem -2rem 2rem -2rem;
-            border-radius: 0 0 8px 8px;
-        }
-
-        .hero h1 {
+            color: white;
+            margin-bottom: 2rem;
             font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .hero p {
-            font-size: 1.2rem;
-            color: rgba(255,255,255,0.9);
+        .search-container {
             margin-bottom: 2rem;
         }
 
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-item {
-            text-align: center;
-            color: rgba(255,255,255,0.9);
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: white;
-        }
-
-        .search-bar {
-            max-width: 600px;
-            margin: 2rem auto;
-            position: relative;
-        }
-
-        .search-bar input {
+        .search-input {
             width: 100%;
             padding: 1rem;
-            border: 2px solid #40444b;
-            border-radius: 4px;
-            background: #2f3136;
-            color: #dcddde;
+            border: none;
+            border-radius: 15px;
             font-size: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .search-bar input:focus {
+        .search-input:focus {
             outline: none;
-            border-color: #7289da;
+            box-shadow: 0 5px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .filters {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .filter-group label {
-            color: #b9bbbe;
-            font-size: 0.9rem;
-        }
-
-        .filter-group select {
-            padding: 0.5rem;
-            border: 1px solid #40444b;
-            border-radius: 4px;
-            background: #2f3136;
-            color: #dcddde;
-        }
-
-        .stream-grid {
+        .streamers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
             margin-top: 2rem;
         }
 
-        .stream-card {
-            background: #2f3136;
-            border-radius: 8px;
+        .streamer-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
             padding: 1.5rem;
-            border: 1px solid #40444b;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
-            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .stream-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            border-color: #7289da;
+        .streamer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
         }
 
-        .stream-header {
+        .streamer-header {
             display: flex;
             align-items: center;
             gap: 1rem;
             margin-bottom: 1rem;
         }
 
-        .stream-avatar {
-            width: 50px;
-            height: 50px;
+        .streamer-photo {
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: linear-gradient(45deg, #7289da, #43b581);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+            object-fit: cover;
+        }
+
+        .streamer-info h3 {
+            margin: 0;
+            color: #333;
             font-size: 1.2rem;
         }
 
-        .stream-info h3 {
-            color: #dcddde;
-            margin-bottom: 0.5rem;
-            font-size: 1.2rem;
+        .streamer-platform {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: capitalize;
         }
 
-        .stream-platform {
-            background: #7289da;
+        .streamer-game {
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
             font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .stream-details {
+            display: inline-block;
             margin-bottom: 1rem;
         }
 
-        .stream-details p {
-            color: #b9bbbe;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .stream-game {
-            color: #43b581;
-            font-weight: 500;
-        }
-
-        .stream-description {
-            color: #b9bbbe;
-            font-size: 0.9rem;
+        .streamer-description {
+            color: #666;
             margin-bottom: 1rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            line-height: 1.5;
         }
 
-        .stream-actions {
+        .streamer-actions {
             display: flex;
             gap: 0.5rem;
-            justify-content: space-between;
             align-items: center;
         }
 
-        .stream-actions .left {
-            display: flex;
-            gap: 0.5rem;
+        .watch-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
         }
 
-        .bump-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #b9bbbe;
+        .watch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .bump-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
             font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .bump-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .bump-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .bump-count {
-            background: #40444b;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            color: #dcddde;
-            font-weight: 500;
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 0.5rem;
         }
 
-        .btn-small {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-        }
-
-        .modal-content {
-            background: #36393f;
-            margin: 5% auto;
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
             padding: 2rem;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-            position: relative;
         }
 
-        .modal-header {
+        .page-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .account-container,
+        .purchase-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .account-header,
+        .purchase-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
-        .modal-header h2 {
-            color: #dcddde;
-        }
-
-        .close {
-            color: #b9bbbe;
-            font-size: 1.5rem;
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
             cursor: pointer;
-        }
-
-        .close:hover {
-            color: #dcddde;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #b9bbbe;
-            font-weight: 500;
-        }
-
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #40444b;
-            border-radius: 4px;
-            background: #2f3136;
-            color: #dcddde;
-            font-size: 1rem;
-        }
-
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-            outline: none;
-            border-color: #7289da;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 4px;
-            color: white;
-            font-weight: 500;
-            z-index: 1001;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.success {
-            background: #43b581;
-        }
-
-        .notification.error {
-            background: #f04747;
-        }
-
-        .notification.info {
-            background: #7289da;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #b9bbbe;
-        }
-
-        .empty-state h3 {
-            color: #dcddde;
-            margin-bottom: 1rem;
-        }
-
-        .user-dropdown {
-            position: relative;
+            color: #666;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 4px;
-            transition: background 0.3s ease;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
         }
 
-        .user-info:hover {
-            background: #40444b;
-        }
-
-        .user-avatar-small {
-            width: 32px;
-            height: 32px;
+        .user-photo {
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: linear-gradient(45deg, #7289da, #43b581);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.9rem;
+            object-fit: cover;
         }
 
-        .loading {
+        .stream-form {
+            margin-bottom: 2rem;
+        }
+
+        .stream-form h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .stream-form input,
+        .stream-form select,
+        .stream-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .logout-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .logout-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .user-streams h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .user-stream-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .user-stream-item h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .user-stream-item p {
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .purchase-content {
             text-align: center;
             padding: 2rem;
-            color: #b9bbbe;
         }
 
-        .loading:after {
-            content: '';
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #40444b;
-            border-top: 2px solid #7289da;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .recently-bumped {
-            border-left: 4px solid #43b581;
-        }
-
-        .bump-timer {
-            font-size: 0.8rem;
-            color: #b9bbbe;
-            margin-top: 0.5rem;
-        }
-
-        .hidden {
-            display: none;
+        .purchase-content h3 {
+            margin-bottom: 1rem;
+            color: #333;
         }
 
         @media (max-width: 768px) {
-            .navbar-content {
-                flex-direction: column;
-                gap: 1rem;
+            .nav-container {
+                padding: 0 1rem;
             }
-            
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
+
+            .container {
+                padding: 0 1rem;
             }
-            
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .stats {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .stream-grid {
+
+            .streamers-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .filters {
+
+            .streamer-actions {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .watch-btn {
+                width: 100%;
             }
         }
     </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-content">
-            <a href="#" class="logo" onclick="showHome()">📺 BumpifyLive</a>
-            <div class="nav-links">
-                <a href="#" onclick="showHome()">Home</a>
-                <a href="#" onclick="showSubmitModal()">Add Stream</a>
-                <div id="authSection">
-                    <button onclick="showLoginModal()">Login</button>
-                </div>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container">
-        <div class="hero">
-            <h1>Discover Amazing Live Streams</h1>
-            <p>Join the community-powered platform where streamers can promote their content and viewers discover new channels</p>
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-number" id="totalStreams">0</div>
-                    <div>Active Streams</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="totalBumps">0</div>
-                    <div>Total Bumps</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="totalUsers">0</div>
-                    <div>Streamers</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Search streams, games, or streamers..." onkeyup="filterStreams()">
-        </div>
-
-        <div class="filters">
-            <div class="filter-group">
-                <label>Sort by:</label>
-                <select id="sortFilter" onchange="filterStreams()">
-                    <option value="recent">Recently Bumped</option>
-                    <option value="title">Title A-Z</option>
-                    <option value="streamer">Streamer A-Z</option>
-                    <option value="game">Game A-Z</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Platform:</label>
-                <select id="platformFilter" onchange="filterStreams()">
-                    <option value="all">All Platforms</option>
-                    <option value="twitch">Twitch</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="kick">Kick</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Game:</label>
-                <select id="gameFilter" onchange="filterStreams()">
-                    <option value="all">All Games</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="streamGrid" class="stream-grid">
-            <!-- Streams will be populated here -->
-        </div>
-        
-        <div id="emptyState" class="empty-state hidden">
-            <h3>No streams found</h3>
-            <p>Be the first to add a stream or try adjusting your search filters.</p>
-            <button class="btn btn-primary" onclick="showSubmitModal()">Add First Stream</button>
-        </div>
-
-        <div id="loading" class="loading hidden">
-            Loading streams...
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Login to BumpifyLive</h2>
-                <span class="close" onclick="closeModal('loginModal')">&times;</span>
-            </div>
-            <div style="text-align: center;">
-                <p style="margin-bottom: 2rem; color: #b9bbbe;">Sign in to submit streams and bump your favorites!</p>
-                <button class="btn btn-primary" onclick="signInWithGoogle()">
-                    <span style="margin-right: 0.5rem;">🔐</span>
-                    Sign in with Google
-                </button>
-                <div style="margin-top: 1rem;">
-                    <button class="btn btn-secondary" onclick="signInWithTwitch()">
-                        <span style="margin-right: 0.5rem;">🎮</span>
-                        Sign in with Twitch
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Submit Stream Modal -->
-    <div id="submitModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add Your Stream</h2>
-                <span class="close" onclick="closeModal('submitModal')">&times;</span>
-            </div>
-            <form id="submitForm" onsubmit="submitStream(event)">
-                <div class="form-group">
-                    <label for="streamUrl">Stream URL *</label>
-                    <input type="url" id="streamUrl" placeholder="https://twitch.tv/yourname" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="streamTitle">Stream Title *</label>
-                    <input type="text" id="streamTitle" placeholder="My Awesome Stream" required maxlength="100">
-                </div>
-                
-                <div class="form-group">
-                    <label for="streamGame">Game/Category *</label>
-                    <input type="text" id="streamGame" placeholder="Just Chatting" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="streamDescription">Description</label>
-                    <textarea id="streamDescription" rows="4" placeholder="Tell viewers what to expect from your stream..." maxlength="500"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="streamPlatform">Platform *</label>
-                    <select id="streamPlatform" required>
-                        <option value="">Select Platform</option>
-                        <option value="twitch">Twitch</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="kick">Kick</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div style="display: flex; gap: 1rem;">
-                    <button type="submit" class="btn btn-success">Add Stream</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('submitModal')">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-firestore-compat.min.js"></script>
 
     <script>
-        // REPLACE WITH YOUR FIREBASE CONFIG
+        // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyD3sCaLCcJW4htEGkyVuaIHuM5hMMF2l2s",
-            authDomain: "bumpifylive-dd3da.firebaseapp.com",
-            projectId: "bumpifylive-dd3da",
-            storageBucket: "bumpifylive-dd3da.appspot.com",
-            messagingSenderId: "359364471034",
-            appId: "1:359364471034:web:7fa6710703ddad81964143"
+            // Replace with your Firebase config
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
         };
 
         // Initialize Firebase
@@ -700,515 +530,282 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // App state
+        // DOM elements
+        const authBtn = document.getElementById('authBtn');
+        const accountPage = document.getElementById('accountPage');
+        const purchasePage = document.getElementById('purchasePage');
+        const closeAccount = document.getElementById('closeAccount');
+        const closePurchase = document.getElementById('closePurchase');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const streamersGrid = document.getElementById('streamersGrid');
+        const searchInput = document.getElementById('searchInput');
+        const addStreamForm = document.getElementById('addStreamForm');
+        const userStreamsList = document.getElementById('userStreamsList');
+
+        // Auth state
         let currentUser = null;
-        let streams = [];
-        let filteredStreams = [];
+        let allStreams = [];
+
+        // Bump cooldown (2 hours)
+        const BUMP_COOLDOWN_HOURS = 2;
 
         // Initialize app
-        function initApp() {
-            showLoading(true);
-            
-            // Listen for auth state changes
-            auth.onAuthStateChanged(user => {
-                currentUser = user;
-                updateAuthUI();
-                if (user) {
-                    console.log('User signed in:', user.displayName);
-                } else {
-                    console.log('User signed out');
-                }
-            });
+        auth.onAuthStateChanged(user => {
+            currentUser = user;
+            if (user) {
+                authBtn.textContent = 'Account';
+                authBtn.onclick = () => {
+                    updateUserInfo();
+                    loadUserStreams();
+                    accountPage.style.display = 'flex';
+                };
+            } else {
+                authBtn.textContent = 'Sign In';
+                authBtn.onclick = signIn;
+            }
+            loadStreamers();
+        });
 
-            // Listen for stream updates
-            db.collection('streams')
-                .orderBy('lastBumped', 'desc')
-                .onSnapshot(snapshot => {
-                    streams = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    
-                    // Update stats
-                    updateStats();
-                    
-                    // Update game filter
-                    updateGameFilter();
-                    
-                    // Apply current filters
-                    filterStreams();
-                    
-                    showLoading(false);
-                }, error => {
-                    console.error('Error fetching streams:', error);
-                    showNotification('Error loading streams', 'error');
-                    showLoading(false);
-                });
-        }
-
-        // Authentication
-        function signInWithGoogle() {
+        // Google Sign In
+        async function signIn() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then(result => {
-                    showNotification('Successfully signed in!', 'success');
-                    closeModal('loginModal');
-                })
-                .catch(error => {
-                    console.error('Auth error:', error);
-                    showNotification('Failed to sign in. Please try again.', 'error');
-                });
+            try {
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed. Please try again.');
+            }
         }
 
-        function signOut() {
-            auth.signOut()
-                .then(() => {
-                    showNotification('Successfully signed out!', 'success');
-                })
-                .catch(error => {
-                    console.error('Sign out error:', error);
-                });
+        // Sign Out
+        async function signOut() {
+            try {
+                await auth.signOut();
+                accountPage.style.display = 'none';
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
         }
 
-        // Stream management
-        function submitStream(event) {
-            event.preventDefault();
-            
-            if (!currentUser) {
-                showNotification('Please sign in first', 'error');
+        // Update user info in account page
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userPhoto').src = currentUser.photoURL || '';
+                document.getElementById('userName').textContent = currentUser.displayName || '';
+                document.getElementById('userEmail').textContent = currentUser.email || '';
+            }
+        }
+
+        // Load all streamers
+        async function loadStreamers() {
+            try {
+                const snapshot = await db.collection('streams')
+                    .orderBy('lastBumped', 'desc')
+                    .get();
+                
+                allStreams = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                displayStreamers(allStreams);
+            } catch (error) {
+                console.error('Error loading streamers:', error);
+                streamersGrid.innerHTML = '<div class="loading">Error loading streamers</div>';
+            }
+        }
+
+        // Display streamers
+        function displayStreamers(streams) {
+            if (streams.length === 0) {
+                streamersGrid.innerHTML = '<div class="loading">No streamers found</div>';
                 return;
             }
 
-            const formData = {
-                url: document.getElementById('streamUrl').value,
+            streamersGrid.innerHTML = streams.map(stream => `
+                <div class="streamer-card">
+                    <div class="streamer-header">
+                        <img src="${stream.userPhoto || ''}" alt="${stream.userDisplayName}" class="streamer-photo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMzAiIGZpbGw9IiNkZGQiLz4KPHN2ZyB4PSIxNSIgeT0iMTAiIHdpZHRoPSIzMCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAxMmMyLjc2IDAgNS0yLjI0IDUtNXMtMi4yNC01LTUtNS01IDIuMjQtNSA1IDIuMjQgNSA1IDV6bTAgMmMtMy4zMyAwLTEwIDEuNjctMTAgNXYzaDE0di0zYzAtMy4zMy02LjY3LTUtNS01eiIvPgo8L3N2Zz4KPC9zdmc+'">
+                        <div class="streamer-info">
+                            <h3>${stream.userDisplayName}</h3>
+                            <div class="streamer-platform">${stream.platform}</div>
+                        </div>
+                    </div>
+                    <div class="streamer-game">${stream.game}</div>
+                    <div class="streamer-description">${stream.description}</div>
+                    <div class="streamer-actions">
+                        <button class="watch-btn" onclick="window.open('${stream.url}', '_blank')">
+                            Watch Streamer
+                        </button>
+                        <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBump(stream) ? 'disabled' : ''}>
+                            Bump
+                        </button>
+                        <span class="bump-count">${stream.bumpCount || 0}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Check if user can bump
+        function canBump(stream) {
+            if (!currentUser) return false;
+            if (stream.userId === currentUser.uid) return false;
+            
+            const lastBumped = stream.lastBumped?.toDate() || new Date(0);
+            const now = new Date();
+            const hoursSinceLastBump = (now - lastBumped) / (1000 * 60 * 60);
+            
+            return hoursSinceLastBump >= BUMP_COOLDOWN_HOURS;
+        }
+
+        // Bump stream
+        async function bumpStream(streamId) {
+            if (!currentUser) {
+                alert('Please sign in to bump streams');
+                return;
+            }
+
+            try {
+                const streamRef = db.collection('streams').doc(streamId);
+                const streamDoc = await streamRef.get();
+                const streamData = streamDoc.data();
+
+                if (!canBump({...streamData, id: streamId})) {
+                    alert('This stream was recently bumped. Please wait before bumping again.');
+                    return;
+                }
+
+                await streamRef.update({
+                    bumpCount: firebase.firestore.FieldValue.increment(1),
+                    lastBumped: firebase.firestore.Timestamp.now(),
+                    bumpedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                });
+
+                loadStreamers();
+            } catch (error) {
+                console.error('Error bumping stream:', error);
+                alert('Error bumping stream. Please try again.');
+            }
+        }
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            if (searchTerm === '') {
+                displayStreamers(allStreams);
+                return;
+            }
+
+            const filteredStreams = allStreams.filter(stream => 
+                stream.userDisplayName.toLowerCase().includes(searchTerm) ||
+                stream.game.toLowerCase().includes(searchTerm) ||
+                stream.platform.toLowerCase().includes(searchTerm) ||
+                stream.description.toLowerCase().includes(searchTerm)
+            );
+
+            displayStreamers(filteredStreams);
+        });
+
+        // Add stream form
+        addStreamForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                alert('Please sign in to add streams');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const streamData = {
+                userId: currentUser.uid,
+                userEmail: currentUser.email,
+                userDisplayName: currentUser.displayName,
+                userPhoto: currentUser.photoURL,
                 title: document.getElementById('streamTitle').value,
+                platform: document.getElementById('streamPlatform').value,
+                url: document.getElementById('streamUrl').value,
                 game: document.getElementById('streamGame').value,
                 description: document.getElementById('streamDescription').value,
-                platform: document.getElementById('streamPlatform').value,
-                userId: currentUser.uid,
-                userDisplayName: currentUser.displayName,
-                userEmail: currentUser.email,
-                userPhoto: currentUser.photoURL || null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastBumped: firebase.firestore.FieldValue.serverTimestamp(),
                 bumpCount: 0,
-                bumpedBy: []
+                bumpedBy: [],
+                createdAt: firebase.firestore.Timestamp.now(),
+                lastBumped: firebase.firestore.Timestamp.now()
             };
 
-            // Check if user already has a stream
-            db.collection('streams')
-                .where('userId', '==', currentUser.uid)
-                .get()
-                .then(querySnapshot => {
-                    if (!querySnapshot.empty) {
-                        // Update existing stream
-                        const existingDoc = querySnapshot.docs[0];
-                        existingDoc.ref.update({
-                            ...formData,
-                            lastBumped: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        showNotification('Stream updated successfully!', 'success');
-                    } else {
-                        // Create new stream
-                        db.collection('streams').add(formData);
-                        showNotification('Stream added successfully!', 'success');
-                    }
-                    
-                    closeModal('submitModal');
-                    resetForm();
-                })
-                .catch(error => {
-                    console.error('Error submitting stream:', error);
-                    showNotification('Failed to submit stream. Please try again.', 'error');
-                });
-        }
-
-        function bumpStream(streamId) {
-            if (!currentUser) {
-                showNotification('Please sign in to bump streams', 'error');
-                return;
+            try {
+                await db.collection('streams').add(streamData);
+                alert('Stream added successfully!');
+                e.target.reset();
+                loadStreamers();
+                loadUserStreams();
+            } catch (error) {
+                console.error('Error adding stream:', error);
+                alert('Error adding stream. Please try again.');
             }
+        });
 
-            const streamRef = db.collection('streams').doc(streamId);
-            
-            streamRef.get().then(doc => {
-                if (doc.exists) {
-                    const stream = doc.data();
-                    const bumpedBy = stream.bumpedBy || [];
-                    
-                    // Check if user already bumped this stream recently (within 1 hour)
-                    const userBumpEntry = bumpedBy.find(entry => entry.userId === currentUser.uid);
-                    const now = new Date();
-                    const oneHour = 60 * 60 * 1000;
-                    
-                    if (userBumpEntry && userBumpEntry.timestamp && 
-                        (now - userBumpEntry.timestamp.toDate()) < oneHour) {
-                        showNotification('You can only bump this stream once per hour', 'error');
-                        return;
-                    }
-                    
-                    // Update or add user bump entry
-                    const updatedBumpedBy = bumpedBy.filter(entry => entry.userId !== currentUser.uid);
-                    updatedBumpedBy.push({
-                        userId: currentUser.uid,
-                        displayName: currentUser.displayName,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    streamRef.update({
-                        lastBumped: firebase.firestore.FieldValue.serverTimestamp(),
-                        bumpCount: firebase.firestore.FieldValue.increment(1),
-                        bumpedBy: updatedBumpedBy
-                    });
-                    
-                    showNotification('Stream bumped to the top!', 'success');
-                }
-            }).catch(error => {
-                console.error('Error bumping stream:', error);
-                showNotification('Failed to bump stream', 'error');
-            });
-        }
-
-        function deleteStream(streamId) {
+        // Load user's streams
+        async function loadUserStreams() {
             if (!currentUser) return;
-            
-            if (confirm('Are you sure you want to delete this stream?')) {
-                db.collection('streams').doc(streamId).delete()
-                    .then(() => {
-                        showNotification('Stream deleted successfully', 'success');
-                    })
-                    .catch(error => {
-                        console.error('Error deleting stream:', error);
-                        showNotification('Failed to delete stream', 'error');
-                    });
-            }
-        }
 
-        // UI Functions
-        function updateAuthUI() {
-            const authSection = document.getElementById('authSection');
-            
-            if (currentUser) {
-                authSection.innerHTML = `
-                    <div class="user-dropdown">
-                        <div class="user-info">
-                            <div class="user-avatar-small">
-                                ${currentUser.photoURL ? 
-                                    `<img src="${currentUser.photoURL}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                                    currentUser.displayName.charAt(0).toUpperCase()
-                                }
-                            </div>
-                            <span>${currentUser.displayName}</span>
+            try {
+                const snapshot = await db.collection('streams')
+                    .where('userId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                const userStreams = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                userStreamsList.innerHTML = userStreams.length === 0 
+                    ? '<p>No streams added yet.</p>'
+                    : userStreams.map(stream => `
+                        <div class="user-stream-item">
+                            <h4>${stream.title}</h4>
+                            <p><strong>Platform:</strong> ${stream.platform}</p>
+                            <p><strong>Game:</strong> ${stream.game}</p>
+                            <p><strong>Bumps:</strong> ${stream.bumpCount || 0}</p>
+                            <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBump(stream) ? 'disabled' : ''}>
+                                Bump (${BUMP_COOLDOWN_HOURS}h cooldown)
+                            </button>
                         </div>
-                    </div>
-                    <button onclick="signOut()">Logout</button>
-                `;
-            } else {
-                authSection.innerHTML = `
-                    <button onclick="showLoginModal()">Login</button>
-                `;
+                    `).join('');
+            } catch (error) {
+                console.error('Error loading user streams:', error);
+                userStreamsList.innerHTML = '<p>Error loading streams.</p>';
             }
         }
 
-        function renderStreams() {
-            const streamGrid = document.getElementById('streamGrid');
-            const emptyState = document.getElementById('emptyState');
-            
-            if (filteredStreams.length === 0) {
-                streamGrid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            
-            emptyState.classList.add('hidden');
-            
-            streamGrid.innerHTML = filteredStreams.map(stream => {
-                const canBump = currentUser && (!stream.bumpedBy || 
-                    !stream.bumpedBy.some(entry => 
-                        entry.userId === currentUser.uid && 
-                        entry.timestamp && 
-                        (new Date() - entry.timestamp.toDate()) < 60 * 60 * 1000
-                    ));
-                
-                const isOwner = currentUser && stream.userId === currentUser.uid;
-                const lastBumped = stream.lastBumped ? formatTime(stream.lastBumped.toDate()) : 'Never';
-                
-                return `
-                    <div class="stream-card ${isRecentlyBumped(stream) ? 'recently-bumped' : ''}">
-                        <div class="stream-header">
-                            <div class="stream-avatar">
-                                ${stream.userPhoto ? 
-                                    `<img src="${stream.userPhoto}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                                    stream.userDisplayName.charAt(0).toUpperCase()
-                                }
-                            </div>
-                            <div style="flex: 1;">
-                                <h3>${escapeHtml(stream.title)}</h3>
-                                <span class="stream-platform">${stream.platform.toUpperCase()}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stream-details">
-                            <p><strong>Streamer:</strong> ${escapeHtml(stream.userDisplayName)}</p>
-                            <p><strong>Game:</strong> <span class="stream-game">${escapeHtml(stream.game)}</span></p>
-                            <p><strong>Bumped:</strong> ${lastBumped}</p>
-                        </div>
-                        
-                        ${stream.description ? `<div class="stream-description">${escapeHtml(stream.description)}</div>` : ''}
-                        
-                        <div class="stream-actions">
-                            <div class="left">
-                                <a href="${escapeHtml(stream.url)}" target="_blank" class="btn btn-primary btn-small">
-                                    Watch Stream
-                                </a>
-                                ${canBump ? 
-                                    `<button class="btn btn-success btn-small" onclick="bumpStream('${stream.id}')">
-                                        Bump ⬆️
-                                    </button>` : 
-                                    `<button class="btn btn-secondary btn-small" disabled>
-                                        Bumped ✓
-                                    </button>`
-                                }
-                            </div>
-                            <div class="bump-info">
-                                <span class="bump-count">${stream.bumpCount || 0} bumps</span>
-                                ${isOwner ? 
-                                    `<button class="btn btn-danger btn-small" onclick="deleteStream('${stream.id}')">
-                                        Delete
-                                    </button>` : ''
-                                }
-                            </div>
-                        </div>
-                        
-                        ${canBump ? '' : '<div class="bump-timer">You can bump again in ' + getRemainingBumpTime(stream) + '</div>'}
-                    </div>
-                `;
-            }).join('');
-        }
+        // Event listeners
+        closeAccount.addEventListener('click', () => {
+            accountPage.style.display = 'none';
+        });
 
-        function filterStreams() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const sortBy = document.getElementById('sortFilter').value;
-            const platformFilter = document.getElementById('platformFilter').value;
-            const gameFilter = document.getElementById('gameFilter').value;
-            
-            filteredStreams = streams.filter(stream => {
-                const matchesSearch = !searchTerm || 
-                    stream.title.toLowerCase().includes(searchTerm) ||
-                    stream.userDisplayName.toLowerCase().includes(searchTerm) ||
-                    stream.game.toLowerCase().includes(searchTerm);
-                
-                const matchesPlatform = platformFilter === 'all' || stream.platform === platformFilter;
-                const matchesGame = gameFilter === 'all' || stream.game === gameFilter;
-                
-                return matchesSearch && matchesPlatform && matchesGame;
-            });
-            
-            // Sort streams
-            filteredStreams.sort((a, b) => {
-                switch (sortBy) {
-                    case 'title':
-                        return a.title.localeCompare(b.title);
-                    case 'streamer':
-                        return a.userDisplayName.localeCompare(b.userDisplayName);
-                    case 'game':
-                        return a.game.localeCompare(b.game);
-                    case 'recent':
-                    default:
-                        return (b.lastBumped?.toDate() || 0) - (a.lastBumped?.toDate() || 0);
-                }
-            });
-            
-            renderStreams();
-        }
+        closePurchase.addEventListener('click', () => {
+            purchasePage.style.display = 'none';
+        });
 
-        function updateStats() {
-            const totalStreams = streams.length;
-            const totalBumps = streams.reduce((sum, stream) => sum + (stream.bumpCount || 0), 0);
-            const totalUsers = new Set(streams.map(stream => stream.userId)).size;
-            
-            document.getElementById('totalStreams').textContent = totalStreams;
-            document.getElementById('totalBumps').textContent = totalBumps;
-            document.getElementById('totalUsers').textContent = totalUsers;
-        }
+        logoutBtn.addEventListener('click', signOut);
 
-        function updateGameFilter() {
-            const gameFilter = document.getElementById('gameFilter');
-            const games = [...new Set(streams.map(stream => stream.game))].sort();
-            
-            const currentValue = gameFilter.value;
-            gameFilter.innerHTML = '<option value="all">All Games</option>';
-            
-            games.forEach(game => {
-                const option = document.createElement('option');
-                option.value = game;
-                option.textContent = game;
-                gameFilter.appendChild(option);
-            });
-            
-            gameFilter.value = currentValue;
-        }
+        // Purchase page navigation
+        document.querySelector('a[href="purchase.html"]').addEventListener('click', (e) => {
+            e.preventDefault();
+            purchasePage.style.display = 'flex';
+        });
 
-        function showSubmitModal() {
-            if (!currentUser) {
-                showLoginModal();
-                return;
-            }
-            
-            // Pre-fill form if user has existing stream
-            const userStream = streams.find(stream => stream.userId === currentUser.uid);
-            if (userStream) {
-                document.getElementById('streamUrl').value = userStream.url;
-                document.getElementById('streamTitle').value = userStream.title;
-                document.getElementById('streamGame').value = userStream.game;
-                document.getElementById('streamDescription').value = userStream.description || '';
-                document.getElementById('streamPlatform').value = userStream.platform;
-            }
-            
-            document.getElementById('submitModal').style.display = 'block';
-        }
-
-        function showLoginModal() {
-            document.getElementById('loginModal').style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function resetForm() {
-            document.getElementById('submitForm').reset();
-        }
-
-        function showHome() {
-            // Already on home page
-        }
-
-        function showLoading(show) {
-            const loading = document.getElementById('loading');
-            const streamGrid = document.getElementById('streamGrid');
-            
-            if (show) {
-                loading.classList.remove('hidden');
-                streamGrid.style.display = 'none';
-            } else {
-                loading.classList.add('hidden');
-                streamGrid.style.display = 'grid';
-            }
-        }
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-
-        // Utility functions
-        function formatTime(date) {
-            const now = new Date();
-            const diff = now - date;
-            const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-            
-            if (days > 0) return `${days}d ago`;
-            if (hours > 0) return `${hours}h ago`;
-            if (minutes > 0) return `${minutes}m ago`;
-            return 'Just now';
-        }
-
-        function isRecentlyBumped(stream) {
-            if (!stream.lastBumped) return false;
-            const diff = new Date() - stream.lastBumped.toDate();
-            return diff < 5 * 60 * 1000; // 5 minutes
-        }
-
-        function getRemainingBumpTime(stream) {
-            if (!currentUser || !stream.bumpedBy) return '';
-            
-            const userBump = stream.bumpedBy.find(entry => entry.userId === currentUser.uid);
-            if (!userBump || !userBump.timestamp) return '';
-            
-            const diff = new Date() - userBump.timestamp.toDate();
-            const remaining = (60 * 60 * 1000) - diff; // 1 hour
-            
-            if (remaining <= 0) return '';
-            
-            const minutes = Math.floor(remaining / 60000);
-            return `${minutes}m`;
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        };
-
-        // Initialize app when page loads
-        window.addEventListener('load', initApp);
-
-        // Auto-detect platform from URL
-        document.getElementById('streamUrl').addEventListener('input', function(e) {
-            const url = e.target.value.toLowerCase();
-            const platformSelect = document.getElementById('streamPlatform');
-            
-            if (url.includes('twitch.tv')) {
-                platformSelect.value = 'twitch';
-            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                platformSelect.value = 'youtube';
-            } else if (url.includes('kick.com')) {
-                platformSelect.value = 'kick';
-            } else if (url && platformSelect.value === '') {
-                platformSelect.value = 'other';
+        // Close overlays when clicking outside
+        accountPage.addEventListener('click', (e) => {
+            if (e.target === accountPage) {
+                accountPage.style.display = 'none';
             }
         });
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
+        purchasePage.addEventListener('click', (e) => {
+            if (e.target === purchasePage) {
+                purchasePage.style.display = 'none';
             }
-            
-            if (e.key === 'Escape') {
-                const modals = document.querySelectorAll('.modal');
-                modals.forEach(modal => {
-                    if (modal.style.display === 'block') {
-                        modal.style.display = 'none';
-                    }
-                });
-            }
-        });
-
-        // Search input focus effect
-        document.getElementById('searchInput').addEventListener('focus', function() {
-            this.placeholder = '🔍 Search streams, games, or streamers... (Ctrl+K)';
-        });
-
-        document.getElementById('searchInput').addEventListener('blur', function() {
-            this.placeholder = '🔍 Search streams, games, or streamers...';
         });
     </script>
 </body>
