@@ -690,9 +690,6 @@
                         <button class="watch-btn" onclick="window.open('${stream.url}', '_blank')">
                             Watch Streamer
                         </button>
-                        <button class="bump-btn" onclick="bumpStream('${stream.id}')" ${!canBumpNow ? 'disabled' : ''}>
-                            ${canBumpNow ? 'Bump' : 'Cooldown'}
-                        </button>
                     </div>
                 </div>
             `;
@@ -957,18 +954,34 @@
                                 <button class="watch-btn" onclick="window.open('${stream.url}', '_blank')" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem;">
                                     View Stream
                                 </button>
+                                <button class="logout-btn" onclick="deleteStream('${stream.id}')" style="margin-left: 0.5rem; padding: 0.5rem 1rem; font-size: 0.9rem; width: auto; background: #dc3545;">
+                                    Delete
+                                </button>
                             </div>
                         </div>
                     `;
                     }).join('');
                     
                 // Update countdowns for user streams
-                updateCountdowns();
-            } catch (error) {
-                console.error('Error loading user streams:', error);
-                userStreamsList.innerHTML = '<p>Error loading streams. Please try again.</p>';
-            }
-        }
+               updateCountdowns();
+           } catch (error) {
+               console.error('Error loading user streams:', error);
+               userStreamsList.innerHTML = '<p>Error loading streams. Please try again.</p>';
+           }
+       }
+
+       // Delete stream
+       async function deleteStream(streamId) {
+           if (!currentUser) return;
+           if (!confirm('Delete this stream?')) return;
+           try {
+               await db.collection('streams').doc(streamId).delete();
+               loadStreamers();
+               loadUserStreams();
+           } catch (error) {
+               alert('Delete failed');
+           }
+       }
 
         // Event listeners
         closeAccount.addEventListener('click', () => {
