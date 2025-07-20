@@ -880,14 +880,28 @@
                 return;
             }
 
-            const formData = new FormData(e.target);
+            const url = document.getElementById('streamUrl').value;
+            const description = document.getElementById('streamDescription').value;
+
+            // Parse the URL to et platform. game, and title
+            const parsedInfo = parseStreamUrl(url);
+
+            if (!parsedInfo) {
+                alert('Please enter a valid stream URL');
+                return;
+            }
+
             const streamData = {
                 userId: currentUser.uid,
                 userEmail: currentUser.email,
                 userDisplayName: currentUser.displayName,
                 userPhoto: currentUser.photoURL,
-                url: document.getElementById('streamUrl').value,
-                description: document.getElementById('streamDescription').value,
+                url: url,
+                description: description,
+                platform: parsedInfo.title,
+                username: parsedInfo.username,
+                title: parsedInfo.title,
+                game: parsedInfo.game,
                 bumpCount: 0,
                 bumpedBy: [],
                 createdAt: firebase.firestore.Timestamp.now(),
@@ -898,6 +912,7 @@
                 await db.collection('streams').add(streamData);
                 alert('Stream added successfully!');
                 e.target.reset();
+                document.getElementById('streamPreview').style.display = 'none'; // Hide preview after submit
                 loadStreamers();
                 loadUserStreams();
             } catch (error) {
